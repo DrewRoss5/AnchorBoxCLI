@@ -30,7 +30,7 @@ def parse_command(command: str, user: User, server_addr: str):
                 return 'Error: This command accepts no arguments'
             if args[0] not in ('rsa', 'token'):
                 return f'Unrecognized authentication method: "{args[0]}"'
-            if api.auth_test(server_addr):
+            if api.auth_test(server_addr, args[0], user):
                 return 'Authentication successful'
             return 'Authentication failed'
         

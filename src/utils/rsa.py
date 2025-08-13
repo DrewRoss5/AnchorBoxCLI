@@ -6,7 +6,9 @@ from Crypto.Hash import SHA256
 RSA_KEY_SIZE = 4096
 
 class RSAKeyPair:
-    def __init__(self, private_pem: str = None, passphrase: str =  None):
+    def __init__(self, prv_file: str = None, passphrase: str =  None):
+        with open(prv_file, 'rb') as f:
+            private_pem = f.read()
         self.prv_key = RSA.import_key(private_pem, passphrase)
         self.pub_key = self.prv_key.public_key()
     
