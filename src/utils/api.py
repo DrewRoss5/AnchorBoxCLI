@@ -23,7 +23,9 @@ def rsa_authenticate(server_addr: str,  user: User) -> None:
 
 # recieves an authentication token from the server
 def token_authenticate(server_addr: str, user: User) -> None:
-    response = post_request(f'{server_addr}/auth/token', {'username': user.name, 'password': user.password})
+    password = user.password
+    user.password = None
+    response = post_request(f'{server_addr}/auth/token', {'username': user.name, 'password': password})
     user.token = base64.b64decode(response['message'])
 
 # a simple login test

@@ -5,6 +5,6 @@ class User:
         self.name = username
         self.key_pair = RSAKeyPair(key_path)
         self.password = None
-        self.token = None
-        self.challenge_signature = None
+        self.token = b' '
+        self.challenge_signature = b' '
         self.login_method = None
