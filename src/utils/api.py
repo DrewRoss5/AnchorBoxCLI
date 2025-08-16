@@ -1,6 +1,7 @@
 import requests
 import base64
 import json
+import os
 
 from utils.user import User
 
@@ -38,3 +39,14 @@ def auth_test(server_addr: str, auth_type: str, user: User) -> bool:
     except requests.RequestException as e:
         print(f'Error: {e}')
         return False
+    
+# uploads a file to the anchorbox
+def upload_file(server_addr: str, src_path: str, dst_path: str, user: User) -> bool:
+    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
+    headers = {'auth': token.decode(), 'auth-type': user.login_method, 'dst-path': dst_path}
+    res = requests.post(f'{server_addr}/upload/{user.name}', headers=headers, files={'upload_file': open(src_path, 'rb')})
+    if res.status_code != 200:
+        print(requests.RequestException(f'Failed to reach the server\nStatus Code: {res.status_code}\n"{res.content}"'))
+        return False
+    response = json.loads(res.content)
+    return response['success']
