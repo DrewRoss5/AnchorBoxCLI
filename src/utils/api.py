@@ -50,3 +50,17 @@ def upload_file(server_addr: str, src_path: str, dst_path: str, user: User) -> b
         return False
     response = json.loads(res.content)
     return response['success']
+
+# retrieves a list of files in a particular path
+def list_dir(server_addr: str, path: str, user: User) -> list[tuple[str, str, int]]:
+    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
+    payload = {'auth': token.decode(), 'auth_type': user.login_method, 'path': path}
+    res = post_request(f'{server_addr}/ls/{user.name}', payload)
+    # parse the returned 
+    out = []
+    for name, entry in res['files'].items():
+        if entry['type'] == 'dir':
+            out.append((name, 'DIR', -1))
+        else:
+            out.append((name, 'FILE', entry['size']))
+    return out

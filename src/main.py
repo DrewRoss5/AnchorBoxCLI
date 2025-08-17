@@ -30,7 +30,7 @@ def parse_command(command: str, user: User, server_addr: str):
         
         case 'upload':
             if len(args) != 2:
-                return 'Error: This command acceptes exactly two arguments'
+                return 'Error: This command accepts exactly two arguments'
             src_path, dst_path = args[0], args[1]
             if not os.path.exists(src_path):
                 return 'Error: Could not find the source file. Does it exist?'
@@ -39,9 +39,23 @@ def parse_command(command: str, user: User, server_addr: str):
                 return 'File upload successful'
             return 'File upload failed'
         
+        case 'ls':
+            if len(args) > 1:
+                return 'Error: This command accepts at most one argument'
+            if len(args) == 1:
+                path = args[0]
+            else:
+                path = ''
+            entries = api.list_dir(server_addr, path, user)
+            output = [f'{"Path: ".ljust(40)}{"Type: ".ljust(40)}{"Size On AnchorBox: "}', ]
+            for entry in entries:
+                size_str = f'{entry[2]} bytes' if entry[2] != -1 else ""
+                output.append(f'{entry[0].ljust(40)}{entry[1].ljust(40)}{size_str}')
+            return('\n'.join(output))
+                
         case 'clear':
             os.system('cls')
-            return ' '
+            return ''
         
         case _:
             return f'Error: Unrecognized Command "{command}"'
