@@ -1,8 +1,9 @@
 import requests
 import base64
 import json
-import os
 
+from crypto.rsa import RSA_CIPHER_SIZE
+from crypto.aes import AESCipher
 from utils.user import User
 
 # runs a specified post request, and returns the JSON respons, raising an error if the status code is
@@ -64,3 +65,20 @@ def list_dir(server_addr: str, path: str, user: User) -> list[tuple[str, str, in
         else:
             out.append((name, 'FILE', entry['size']))
     return out
+
+# downloads a file from the anchorbox
+def download_file(server_addr: str, server_path: str, local_path: str, user: User):
+    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
+    payload = {'auth': token.decode(), 'auth_type': user.login_method, 'path': server_path}
+    res = requests.post(f'{server_addr}/download/{user.name}', json=payload)
+    # decrypt the image
+    content = res.content
+    key_ciphertext = content[:RSA_CIPHER_SIZE]
+    file_key = user.key_pair.decrypt(key_ciphertext)
+    if not file_key:
+        return False
+    file_cipher = AESCipher(file_key)
+    file_content = file_cipher.decrypt(content[RSA_CIPHER_SIZE:])
+    with open(local_path, 'wb') as f:
+        f.write(file_content)
+    return True

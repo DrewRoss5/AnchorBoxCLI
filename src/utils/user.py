@@ -1,4 +1,4 @@
-from utils.rsa import RSAKeyPair
+from crypto.rsa import RSAKeyPair
 
 class User:
     def __init__(self, username: str, key_path: str):

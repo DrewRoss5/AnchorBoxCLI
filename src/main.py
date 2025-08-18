@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 from getpass import getpass
 from requests import RequestException
@@ -39,6 +40,17 @@ def parse_command(command: str, user: User, server_addr: str):
                 return 'File upload successful'
             return 'File upload failed'
         
+        case 'download':
+            if len(args) != 2:
+                return 'Error: This command accepts exactly two argument'
+            server_path, local_path = args
+            # validate the local path
+            if not ((local_path.startswith('/') and os.path.exists (local_path)) or os.path.exists(f'{os.getcwd()}/{os.path.dirname(local_path)}')): 
+                return 'Error: Invalid download destination'
+            if api.download_file(server_addr, server_path, local_path, user):
+                return('File download successful')
+            return 'File download failed'
+        
         case 'ls':
             if len(args) > 1:
                 return 'Error: This command accepts at most one argument'
@@ -47,12 +59,16 @@ def parse_command(command: str, user: User, server_addr: str):
             else:
                 path = ''
             entries = api.list_dir(server_addr, path, user)
-            output = [f'{"Path: ".ljust(40)}{"Type: ".ljust(40)}{"Size On AnchorBox: "}', ]
+            output = [f'{"Path: ".ljust(40)}{"Type: ".ljust(40)}{"Size On AnchorBox (Bytes): "}', ]
             for entry in entries:
-                size_str = f'{entry[2]} bytes' if entry[2] != -1 else ""
+                size_str = f'{(entry[2])}' if entry[2] != -1 else ""
                 output.append(f'{entry[0].ljust(40)}{entry[1].ljust(40)}{size_str}')
             return('\n'.join(output))
-                
+        
+        case 'exit':
+            print('Goodbye!')
+            sys.exit(0)
+
         case 'clear':
             os.system('cls')
             return ''
@@ -74,9 +90,6 @@ def main():
     user = User(username, prv_key_path)
     while True:
         command = input(f'{username} > ')
-        if command.startswith('exit'):
-            print('Goodbye!')
-            break
         try:
             output = parse_command(command, user, server_addr)
             print(output)
