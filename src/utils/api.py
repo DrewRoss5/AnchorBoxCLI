@@ -56,7 +56,7 @@ def list_dir(server_addr: str, path: str, user: User) -> list[tuple[str, str, in
     return out
 
 # downloads a file from the anchorbox
-def download_file(server_addr: str, server_path: str, local_path: str, user: User):
+def download_file(server_addr: str, server_path: str, local_path: str, user: User) -> bool:
     token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
     headers = {'auth': token.decode(), 'auth-type': user.login_method}
     payload = {'path': server_path}
@@ -74,3 +74,18 @@ def download_file(server_addr: str, server_path: str, local_path: str, user: Use
     with open(local_path, 'wb') as f:
         f.write(file_content)
     return True
+
+# creates a directory on the anchorbox
+def make_dir(server_addr: str, dir_name: str, user: User) -> None:
+    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
+    headers = {'auth': token.decode(), 'auth-type': user.login_method}
+    payload = {'path': dir_name}
+    json_post_request(f'{server_addr}/mkdir/{user.name}', payload, headers)
+
+# deletes a specified direcotory or file on the anchorbox
+def delete_file(server_addr: str, dir_name: str, user: User) -> None:
+    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
+    headers = {'auth': token.decode(), 'auth-type': user.login_method}
+    payload = {'path': dir_name}
+    json_post_request(f'{server_addr}/rm/{user.name}', payload, headers)
+

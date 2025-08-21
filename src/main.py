@@ -45,7 +45,7 @@ def parse_command(command: str, user: User, server_addr: str):
                 return 'Error: This command accepts exactly two argument'
             server_path, local_path = args
             # validate the local path
-            if not ((local_path.startswith('/') and os.path.exists (local_path)) or os.path.exists(f'{os.getcwd()}/{os.path.dirname(local_path)}')): 
+            if not ((local_path.startswith('/') and os.path.exists (local_path)) or os.path.exists(f'{os.getcwd()}/{os.path.dirname(local_path)}')) : 
                 return 'Error: Invalid download destination'
             if api.download_file(server_addr, server_path, local_path, user):
                 return('File download successful')
@@ -65,6 +65,20 @@ def parse_command(command: str, user: User, server_addr: str):
                 output.append(f'{entry[0].ljust(40)}{entry[1].ljust(40)}{size_str}')
             return('\n'.join(output))
         
+        case 'mkdir':
+            if len(args) > 1:
+                return 'Error: This command accepts at most one argument'
+            dir_name = args[0]
+            api.make_dir(server_addr, dir_name, user)
+            return ''
+
+        case 'rm':
+            if len(args) > 1:
+                return 'Error: This command accepts at most one argument'
+            dir_name = args[0]
+            api.delete_file(server_addr, dir_name, user)
+            return ''
+
         case 'exit':
             print('Goodbye!')
             sys.exit(0)
@@ -92,10 +106,10 @@ def main():
         command = input(f'{username} > ')
         try:
             output = parse_command(command, user, server_addr)
-            print(output)
+            if output:
+                print(output)
         except RequestException as e:
             print(f'Error: {e}')
             
-
 if __name__ == '__main__':
     main()
