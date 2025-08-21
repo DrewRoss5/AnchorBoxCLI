@@ -6,9 +6,18 @@ from requests import RequestException
 
 import utils.api as api
 from utils.user import User
+from utils.strdict import str_dict
+
+# size to indicate a directory in LS entries
+DIR_SIZE = -1
+
+# indexing for LS entries
+PATH_INDEX = 0
+TYPE_INDEX = 1
+SIZE_INDEX = 2
 
 # parses a command and returns a string to print to the user
-def parse_command(command: str, user: User, server_addr: str):
+def parse_command(command: str, user: User, server_addr: str) -> str:
     segments = command.split()
     command = segments[0]
     args = segments[1:]
@@ -52,32 +61,44 @@ def parse_command(command: str, user: User, server_addr: str):
             return 'File download failed'
         
         case 'ls':
-            if len(args) > 1:
-                return 'Error: This command accepts at most one argument'
             if len(args) == 1:
                 path = args[0]
+            elif len(args) > 1:
+                return 'Error: This command accepts at most one argument'
             else:
                 path = ''
             entries = api.list_dir(server_addr, path, user)
             output = [f'{"Path: ".ljust(40)}{"Type: ".ljust(40)}{"Size On AnchorBox (Bytes): "}', ]
             for entry in entries:
-                size_str = f'{(entry[2])}' if entry[2] != -1 else ""
-                output.append(f'{entry[0].ljust(40)}{entry[1].ljust(40)}{size_str}')
+                size_str = '' if entries[SIZE_INDEX] == DIR_SIZE else str(entries[SIZE_INDEX])
+                output.append(f'{entry[PATH_INDEX].ljust(40)}{entry[TYPE_INDEX].ljust(40)}{size_str}')
             return('\n'.join(output))
         
         case 'mkdir':
-            if len(args) > 1:
+            if len(args) != 1:
                 return 'Error: This command accepts at most one argument'
             dir_name = args[0]
             api.make_dir(server_addr, dir_name, user)
             return ''
 
         case 'rm':
-            if len(args) > 1:
-                return 'Error: This command accepts at most one argument'
-            dir_name = args[0]
-            api.delete_file(server_addr, dir_name, user)
+            if len(args) != 1:
+                return 'Error: This command accepts exactly one argument'
+            path= args[0]
+            api.delete_file(server_addr, path, user)
             return ''
+        
+        case 'syshealth':
+            if len(args) == 0:
+                info_type = 'all'
+            elif len(args) > 1:
+                return 'Error: This command accepts at most one argument'
+            else:
+                if args[0] not in ('temp', 'memory', 'storage', 'all'):
+                    return 'Error: Unrecognized info type'
+                info_type = args[0]
+            response = api.get_sys_health(server_addr, info_type, user)
+            return str_dict(response)
 
         case 'exit':
             print('Goodbye!')
@@ -110,6 +131,6 @@ def main():
                 print(output)
         except RequestException as e:
             print(f'Error: {e}')
-            
+               
 if __name__ == '__main__':
     main()

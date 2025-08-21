@@ -7,11 +7,14 @@ from crypto.aes import AESCipher
 from utils.user import User
 
 # runs a specified post request, and returns the JSON response, raising an error if the status code is
-# not 200, or if the request was unseuccessful
-def json_post_request(server_addr: str, data: dict, headers: dict = None) -> dict:
-    res = requests.post(server_addr, json=data, headers=headers)
+# not 200, or if the request was unsuccessful
+def json_request(req_type: str, server_addr: str, data: dict = None, headers: dict = None) -> dict:
+    match req_type:
+        case 'post':
+            res = requests.post(server_addr, json=data, headers=headers)
+        case 'get':
+            res = requests.get(server_addr, headers=headers)
     if res.status_code != 200:
-        print(f'Content: {res.content}')
         raise requests.RequestException(f'Failed to reach the server\nStatus Code: {res.status_code}')
     response = json.loads(res.content)
     if res.headers['result'] != 'OK':
@@ -20,14 +23,14 @@ def json_post_request(server_addr: str, data: dict, headers: dict = None) -> dic
 
 # recieves an RSA challenge from the Anchor and creates a signature to use for future authentication
 def rsa_authenticate(server_addr: str,  user: User) -> None:
-    response = json_post_request(f'{server_addr}/auth/rsa', {'username': user.name, 'password': ''})
+    response = json_request('post', f'{server_addr}/auth/rsa', data={'username': user.name, 'password': ''})
     user.challenge_signature = user.key_pair.sign(base64.b64decode(response["message"]))
 
 # recieves an authentication token from the server
 def token_authenticate(server_addr: str, user: User) -> None:
     password = user.password
     user.password = None
-    response = json_post_request(f'{server_addr}/auth/token', {'username': user.name, 'password': password})
+    response = json_request('post', f'{server_addr}/auth/token', data={'username': user.name, 'password': password})
     user.token = base64.b64decode(response['message'])
     
 # uploads a file to the anchorbox
@@ -36,8 +39,7 @@ def upload_file(server_addr: str, src_path: str, dst_path: str, user: User) -> b
     headers = {'auth': token.decode(), 'auth-type': user.login_method, 'dst-path': dst_path}
     res = requests.post(f'{server_addr}/upload/{user.name}', headers=headers, files={'upload_file': open(src_path, 'rb')})
     if res.status_code != 200:
-        print(requests.RequestException(f'Failed to reach the server\nStatus Code: {res.status_code}\n"{res.content}"'))
-        return False
+        raise requests.RequestException(f'Failed to reach the server\nStatus Code: {res.status_code}\n"{res.content}"')
     return res.headers['result'] == 'OK'
 
 # retrieves a list of files in a particular path
@@ -45,7 +47,7 @@ def list_dir(server_addr: str, path: str, user: User) -> list[tuple[str, str, in
     token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
     payload = {'path': path}
     headers = {'auth': token.decode(), 'auth-type': user.login_method}
-    res = json_post_request(f'{server_addr}/ls/{user.name}', payload, headers=headers)
+    res = json_request('post', f'{server_addr}/ls/{user.name}', data=payload, headers=headers)
     # parse the returned 
     out = []
     for name, entry in res['files'].items():
@@ -80,12 +82,18 @@ def make_dir(server_addr: str, dir_name: str, user: User) -> None:
     token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
     headers = {'auth': token.decode(), 'auth-type': user.login_method}
     payload = {'path': dir_name}
-    json_post_request(f'{server_addr}/mkdir/{user.name}', payload, headers)
+    json_request('post', f'{server_addr}/mkdir/{user.name}', data=payload, headers=headers)
 
 # deletes a specified direcotory or file on the anchorbox
 def delete_file(server_addr: str, dir_name: str, user: User) -> None:
     token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
     headers = {'auth': token.decode(), 'auth-type': user.login_method}
     payload = {'path': dir_name}
-    json_post_request(f'{server_addr}/rm/{user.name}', payload, headers)
+    json_request('post', f'{server_addr}/rm/{user.name}', data=payload, headers=headers)
 
+# returns specified system health information
+def get_sys_health(server_addr: str, info_type: str, user: User):
+    # ensure the information type is valid
+    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
+    headers = {'username': user.name,'auth': token.decode(), 'auth-type': user.login_method}
+    return json_request('get', f'{server_addr}/health/{info_type}', headers=headers)
