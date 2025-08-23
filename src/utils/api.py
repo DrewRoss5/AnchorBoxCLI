@@ -47,11 +47,11 @@ def upload_file(server_addr: str, src_path: str, dst_path: str, user: User) -> b
 def upload_directory(server_addr: str, src_path: str, dst_path: str, user: User) -> bool:
     # generate the file list
     files = []
-    generate_dir_list(files, src_path)
+    generate_dir_list(src_path, src_path, files)
     # send the post request
     token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
     headers = {'auth': token.decode(), 'auth-type': user.login_method, 'dst-path': dst_path}
-    res = requests.post(f'{server_addr}/upload/{user.name}', headers=headers, files=files)
+    res = requests.post(f'{server_addr}/upload_dir/{user.name}', headers=headers, files=files)
     if res.status_code != 200:
         raise requests.RequestException(f'Failed to reach the server\nStatus Code: {res.status_code}\n"{res.content}"')
     return res.headers['result'] == 'OK'

@@ -13,9 +13,11 @@ def str_dict(data: dict, depth: int = 0) -> str:
     return '\n'.join(out)
 
 # takes a list and updates with file IO objects in a directory, accounting for the possibility of nested directories
-def generate_dir_list(files: list, path_name: str, parent_name: str = '') -> None:
+def generate_dir_list(base_path: str, path_name: str, files: list) -> None:
     for entry in os.listdir(path_name):
+        entry = f'{path_name}/{entry}'
+        print(entry)
         if os.path.isdir(entry):
-            generate_dir_list(files, entry, f'{path_name}/')
+            generate_dir_list(base_path, entry, files)
         else:
-            files.append((f'{parent_name}{path_name}/{entry}', open(f'{parent_name}{path_name}/{entry}', 'rb')))
+            files.append(('upload_files', (f'{entry.removeprefix(base_path)}', open(f'{entry}', 'rb'))))
