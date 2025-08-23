@@ -6,7 +6,7 @@ from requests import RequestException
 
 import utils.api as api
 from utils.user import User
-from utils.strdict import str_dict
+from utils.helpers import str_dict
 
 # size to indicate a directory in LS entries
 DIR_SIZE = -1
@@ -45,7 +45,11 @@ def parse_command(command: str, user: User, server_addr: str) -> str:
             if not os.path.exists(src_path):
                 return 'Error: Could not find the source file. Does it exist?'
             # TODO: Validate the destination path
-            if api.upload_file(server_addr, src_path, dst_path, user):
+            if os.path.isdir(src_path):
+                success = api.upload_directory(server_addr, src_path, dst_path, user)
+            else:
+                success = api.upload_file(server_addr, src_path, dst_path, user)
+            if success:
                 return 'File upload successful'
             return 'File upload failed'
         

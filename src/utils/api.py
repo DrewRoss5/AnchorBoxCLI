@@ -5,6 +5,7 @@ import json
 from crypto.rsa import RSA_CIPHER_SIZE
 from crypto.aes import AESCipher
 from utils.user import User
+from utils.helpers import generate_dir_list
 
 # runs a specified post request, and returns the JSON response, raising an error if the status code is
 # not 200, or if the request was unsuccessful
@@ -38,6 +39,19 @@ def upload_file(server_addr: str, src_path: str, dst_path: str, user: User) -> b
     token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
     headers = {'auth': token.decode(), 'auth-type': user.login_method, 'dst-path': dst_path}
     res = requests.post(f'{server_addr}/upload/{user.name}', headers=headers, files={'upload_file': open(src_path, 'rb')})
+    if res.status_code != 200:
+        raise requests.RequestException(f'Failed to reach the server\nStatus Code: {res.status_code}\n"{res.content}"')
+    return res.headers['result'] == 'OK'
+
+# uploads a directory to the anchorbox
+def upload_directory(server_addr: str, src_path: str, dst_path: str, user: User) -> bool:
+    # generate the file list
+    files = []
+    generate_dir_list(files, src_path)
+    # send the post request
+    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
+    headers = {'auth': token.decode(), 'auth-type': user.login_method, 'dst-path': dst_path}
+    res = requests.post(f'{server_addr}/upload/{user.name}', headers=headers, files=files)
     if res.status_code != 200:
         raise requests.RequestException(f'Failed to reach the server\nStatus Code: {res.status_code}\n"{res.content}"')
     return res.headers['result'] == 'OK'
@@ -92,7 +106,7 @@ def delete_file(server_addr: str, dir_name: str, user: User) -> None:
     json_request('post', f'{server_addr}/rm/{user.name}', data=payload, headers=headers)
 
 # returns specified system health information
-def get_sys_health(server_addr: str, info_type: str, user: User):
+def get_sys_health(server_addr: str, info_type: str, user: User) -> dict:
     # ensure the information type is valid
     token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
     headers = {'username': user.name,'auth': token.decode(), 'auth-type': user.login_method}
