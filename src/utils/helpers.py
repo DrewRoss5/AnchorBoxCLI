@@ -14,9 +14,7 @@ def str_dict(data: dict, depth: int = 0) -> str:
 
 # takes a list and updates with file IO objects in a directory, accounting for the possibility of nested directories
 def generate_dir_list(base_path: str, path_name: str, files: list) -> None:
-    for entry in os.listdir(path_name):
-        entry = f'{path_name}/{entry}'
-        print(entry)
+    for entry in map(lambda x: f'{path_name}/{x}', os.listdir(path_name)):
         if os.path.isdir(entry):
             generate_dir_list(base_path, entry, files)
         else:

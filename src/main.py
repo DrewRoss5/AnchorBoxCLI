@@ -74,7 +74,7 @@ def parse_command(command: str, user: User, server_addr: str) -> str:
             entries = api.list_dir(server_addr, path, user)
             output = [f'{"Path: ".ljust(40)}{"Type: ".ljust(40)}{"Size On AnchorBox (Bytes): "}', ]
             for entry in entries:
-                size_str = '' if entries[SIZE_INDEX] == DIR_SIZE else str(entries[SIZE_INDEX])
+                size_str = '' if entry[SIZE_INDEX] == DIR_SIZE else str(entry[SIZE_INDEX])
                 output.append(f'{entry[PATH_INDEX].ljust(40)}{entry[TYPE_INDEX].ljust(40)}{size_str}')
             return('\n'.join(output))
         
