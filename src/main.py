@@ -107,15 +107,15 @@ def parse_command(command: str, user: User, server_addr: str) -> str:
             return str_dict(response)
         
         case 'password':
-            if len(args) != 2:
-                return 'Error: This command accepts exactly two arguments'
-            operation, pw_name = args[0], args[1]
+            if len(args) < 1 or len(args) > 2:
+                return 'Error: This command accepts between one and two arguments'
+            operation = args[0]
+            pw_name = args[1] if len(args) == 2 else " "
             match operation:
                 case 'new':
                     password = get_new_password()
                     result = api.create_password(server_addr, pw_name, password, user)
                     return result['message']
-                
                 case 'get':
                     result = api.get_password(server_addr, pw_name, user)
                     password = decrypt_password(result['key'], result['password'], user.key_pair)
@@ -123,7 +123,12 @@ def parse_command(command: str, user: User, server_addr: str) -> str:
                         return 'Error: Failed to decrypt the password'
                     pyperclip.copy(password)
                     return 'Password copied to clipboard'
-
+                case 'delete':
+                    result = api.delete_password(server_addr, pw_name, user)
+                    return result['message']
+                case 'list':
+                    result = api.list_passwords(server_addr, user)
+                    return f'Passwords:\n\t{"\n\t".join(result)}'
                 case _:
                     return f'Error: Unrecognized password database operation "{operation}"'
             

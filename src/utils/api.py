@@ -120,7 +120,20 @@ def create_password(server_addr: str, pw_name: str, password: str, user: User) -
     return json_request('post', f'{server_addr}/new_pw/{user.name}', data=payload, headers=headers)
 
 # recieves a password from the password database
-def get_password(server_addr: str, pw_name: str, user: User):
+def get_password(server_addr: str, pw_name: str, user: User) -> dict:
     token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
     headers = {'pw-name': pw_name, 'auth': token.decode(), 'auth-type': user.login_method}
     return json_request('get', f'{server_addr}/get_pw/{user.name}', headers=headers)
+
+# deletes a specified password from the password database
+def delete_password(server_addr: str, pw_name: str, user: User):
+    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
+    headers = {'pw-name': pw_name,'auth': token.decode(), 'auth-type': user.login_method}
+    return json_request('post', f'{server_addr}/del_pw/{user.name}', headers=headers)
+
+# returns a list of all passwords in the user's database
+def list_passwords(server_addr: str, user: User) -> list:
+    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
+    headers = {'auth': token.decode(), 'auth-type': user.login_method}
+    result = json_request('get', f'{server_addr}/list_pw/{user.name}', headers=headers)
+    return json.loads(result['message'])
