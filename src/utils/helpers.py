@@ -1,7 +1,8 @@
 import os
 import base64
 import secrets
-import getpass
+
+from getpass import getpass
 
 from crypto.aes import AESCipher
 from crypto.rsa import RSAKeyPair
@@ -59,7 +60,7 @@ def get_new_password() -> str:
     return generate_password(pw_len, include_special)
 
 # decrypts a provided base64-encoded encrypted password
-def decrypt_password(key: str, password: str, prv_key: RSAKeyPair):
+def decrypt_password(key: str, password: str, prv_key: RSAKeyPair) -> str:
     aes_key = prv_key.decrypt(base64.b64decode(key))
     pass_cipher = base64.b64decode(password)
-    return AESCipher(aes_key).decrypt_authenticated(pass_cipher)
+    return AESCipher(aes_key).decrypt_authenticated(pass_cipher).decode()
