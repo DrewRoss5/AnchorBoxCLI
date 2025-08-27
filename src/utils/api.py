@@ -111,3 +111,16 @@ def get_sys_health(server_addr: str, info_type: str, user: User) -> dict:
     token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
     headers = {'username': user.name,'auth': token.decode(), 'auth-type': user.login_method}
     return json_request('get', f'{server_addr}/health/{info_type}', headers=headers)
+
+# creates a password in the password database
+def create_password(server_addr: str, pw_name: str, password: str, user: User) -> dict:
+    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
+    headers = {'auth': token.decode(), 'auth-type': user.login_method}
+    payload = {'pw_name': pw_name, 'password': password, 'username': user.name}
+    return json_request('post', f'{server_addr}/new_pw/{user.name}', data=payload, headers=headers)
+
+# recieves a password from the password database
+def get_password(server_addr: str, pw_name: str, user: User):
+    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
+    headers = {'pw-name': pw_name, 'auth': token.decode(), 'auth-type': user.login_method}
+    return json_request('get', f'{server_addr}/get_pw/{user.name}', headers=headers)

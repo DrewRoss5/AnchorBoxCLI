@@ -1,12 +1,14 @@
 import os
 import sys
 import json
+import pyperclip
+
 from getpass import getpass
 from requests import RequestException
 
 import utils.api as api
 from utils.user import User
-from utils.helpers import str_dict
+from utils.helpers import str_dict, get_new_password, decrypt_password
 
 # size to indicate a directory in LS entries
 DIR_SIZE = -1
@@ -103,7 +105,28 @@ def parse_command(command: str, user: User, server_addr: str) -> str:
                 info_type = args[0]
             response = api.get_sys_health(server_addr, info_type, user)
             return str_dict(response)
+        
+        case 'password':
+            if len(args) != 2:
+                return 'Error: This command accepts exactly two arguments'
+            operation, pw_name = args[0], args[1]
+            match operation:
+                case 'new':
+                    password = get_new_password()
+                    result = api.create_password(server_addr, pw_name, password, user)
+                    return result['message']
+                
+                case 'get':
+                    result = api.get_password(server_addr, pw_name, user)
+                    password = decrypt_password(result['key'], result['password'], user.key_pair)
+                    if not password:
+                        return 'Error: Failed to decrypt the password'
+                    pyperclip.copy(password)
+                    return 'Password copied to clipboard'
 
+                case _:
+                    return f'Error: Unrecognized password database operation "{operation}"'
+            
         case 'exit':
             print('Goodbye!')
             sys.exit(0)
