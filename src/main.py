@@ -131,7 +131,18 @@ def parse_command(command: str, user: User, server_addr: str) -> str:
                     return f'Passwords:\n\t{"\n\t".join(result)}'
                 case _:
                     return f'Error: Unrecognized password database operation "{operation}"'
-            
+        
+        case 'kill':
+            while True:
+                confirm = input('This will kill the server. Are you sure? (Y/N) ').lower()
+                match confirm:
+                    case 'y':
+                        return api.kill_server(server_addr, user)
+                    case 'n': 
+                        return ''
+                    case _:
+                        print('Please enter "Y" or "N"')
+
         case 'exit':
             print('Goodbye!')
             sys.exit(0)

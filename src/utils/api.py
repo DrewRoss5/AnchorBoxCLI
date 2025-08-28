@@ -32,7 +32,7 @@ def token_authenticate(server_addr: str, user: User) -> None:
     password = user.password
     user.password = None
     response = json_request('post', f'{server_addr}/auth/token', data={'username': user.name, 'password': password})
-    user.token = base64.b64decode(response['message'])
+    user.token = response['message'].encode()
     
 # uploads a file to the anchorbox
 def upload_file(server_addr: str, src_path: str, dst_path: str, user: User) -> bool:
@@ -137,3 +137,10 @@ def list_passwords(server_addr: str, user: User) -> list:
     headers = {'auth': token.decode(), 'auth-type': user.login_method}
     result = json_request('get', f'{server_addr}/list_pw/{user.name}', headers=headers)
     return json.loads(result['message'])
+
+# ends the server session
+def kill_server(server_addr: str, user: User) -> str:
+    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
+    headers = {'username': user.name, 'auth': token.decode(), 'auth-type': user.login_method}
+    result = json_request('post', f'{server_addr}/kill', headers=headers)
+    return result['message']
