@@ -14,8 +14,9 @@ def json_request(req_type: str, server_addr: str, data: dict = None, headers: di
         case 'post':
             res = requests.post(server_addr, json=data, headers=headers)
         case 'get':
-            res = requests.get(server_addr, headers=headers)
+            res = requests.get(server_addr, json=data, headers=headers)
     if res.status_code != 200:
+        print(f'Message: {res.content}')
         raise requests.RequestException(f'Failed to reach the server\nStatus Code: {res.status_code}')
     response = json.loads(res.content)
     if res.headers['result'] != 'OK':
@@ -60,8 +61,8 @@ def upload_directory(server_addr: str, src_path: str, dst_path: str, user: User)
 def list_dir(server_addr: str, path: str, user: User) -> list[tuple[str, str, int]]:
     token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
     payload = {'path': path}
-    headers = {'auth': token.decode(), 'auth-type': user.login_method}
-    res = json_request('post', f'{server_addr}/ls/{user.name}', data=payload, headers=headers)
+    headers = {'auth': token.decode(), 'auth-type': user.login_method, 'path': path}
+    res = json_request('get', f'{server_addr}/ls/{user.name}', data=payload, headers=headers)
     # parse the returned 
     out = []
     for name, entry in res['files'].items():
@@ -76,7 +77,7 @@ def download_file(server_addr: str, server_path: str, local_path: str, user: Use
     token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
     headers = {'auth': token.decode(), 'auth-type': user.login_method}
     payload = {'path': server_path}
-    res = requests.post(f'{server_addr}/download/{user.name}', json=payload, headers=headers)
+    res = requests.get(f'{server_addr}/download/{user.name}', json=payload, headers=headers)
     if res.headers['result'] != 'OK':
         return False
     # decrypt the image
