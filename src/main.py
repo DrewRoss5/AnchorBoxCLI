@@ -40,6 +40,14 @@ def parse_command(command: str, user: User, server_addr: str) -> str:
                 case _:
                     return f'Unrecognized authentication method: "{args[0]}"'
         
+        case 'logout':
+            if len(args) != 0:
+                return 'Error: This command accepts no arguments'
+            if api.logout(server_addr, user):
+                return 'Logout Successful'
+            else:
+                return 'Logout failed'
+
         case 'upload':
             if len(args) != 2:
                 return 'Error: This command accepts exactly two arguments'
@@ -144,6 +152,7 @@ def parse_command(command: str, user: User, server_addr: str) -> str:
                         print('Please enter "Y" or "N"')
 
         case 'exit':
+            api.logout(server_addr, user)
             print('Goodbye!')
             sys.exit(0)
 

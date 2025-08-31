@@ -33,12 +33,21 @@ def token_authenticate(server_addr: str, user: User) -> None:
     password = user.password
     user.password = None
     response = json_request('post', f'{server_addr}/auth/token', data={'username': user.name, 'password': password})
-    user.token = response['message'].encode()
+    user.token = response['message']
+
+# logs a user out
+def logout(server_addr: str, user: User) -> bool:
+    token = {'rsa': base64.b64encode(user.challenge_signature).decode(), 'token': user.token}[user.login_method]
+    headers = {'auth': token, 'auth-type': user.login_method}
+    res = requests.post(f'{server_addr}/logout/{user.name}', headers=headers)
+    if res.status_code != 200:
+        raise requests.RequestException(f'Failed to reach the server\nStatus Code: {res.status_code}\n"{res.content}"')
+    return res.headers['result'] == 'OK'
     
 # uploads a file to the anchorbox
 def upload_file(server_addr: str, src_path: str, dst_path: str, user: User) -> bool:
-    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
-    headers = {'auth': token.decode(), 'auth-type': user.login_method, 'dst-path': dst_path}
+    token = {'rsa': base64.b64encode(user.challenge_signature).decode(), 'token': user.token}[user.login_method]
+    headers = {'auth': token, 'auth-type': user.login_method, 'dst-path': dst_path}
     res = requests.post(f'{server_addr}/upload/{user.name}', headers=headers, files={'upload_file': open(src_path, 'rb')})
     if res.status_code != 200:
         raise requests.RequestException(f'Failed to reach the server\nStatus Code: {res.status_code}\n"{res.content}"')
@@ -50,8 +59,8 @@ def upload_directory(server_addr: str, src_path: str, dst_path: str, user: User)
     files = []
     generate_dir_list(src_path, src_path, files)
     # send the post request
-    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
-    headers = {'auth': token.decode(), 'auth-type': user.login_method, 'dst-path': dst_path}
+    token = {'rsa': base64.b64encode(user.challenge_signature).decode(), 'token': user.token}[user.login_method]
+    headers = {'auth': token, 'auth-type': user.login_method, 'dst-path': dst_path}
     res = requests.post(f'{server_addr}/upload_dir/{user.name}', headers=headers, files=files)
     if res.status_code != 200:
         raise requests.RequestException(f'Failed to reach the server\nStatus Code: {res.status_code}\n"{res.content}"')
@@ -59,9 +68,9 @@ def upload_directory(server_addr: str, src_path: str, dst_path: str, user: User)
 
 # retrieves a list of files in a particular path
 def list_dir(server_addr: str, path: str, user: User) -> list[tuple[str, str, int]]:
-    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
+    token = {'rsa': base64.b64encode(user.challenge_signature).decode(), 'token': user.token}[user.login_method]
     payload = {'path': path}
-    headers = {'auth': token.decode(), 'auth-type': user.login_method, 'path': path}
+    headers = {'auth': token, 'auth-type': user.login_method, 'path': path}
     res = json_request('get', f'{server_addr}/ls/{user.name}', data=payload, headers=headers)
     # parse the returned 
     out = []
@@ -74,8 +83,8 @@ def list_dir(server_addr: str, path: str, user: User) -> list[tuple[str, str, in
 
 # downloads a file from the anchorbox
 def download_file(server_addr: str, server_path: str, local_path: str, user: User) -> bool:
-    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
-    headers = {'auth': token.decode(), 'auth-type': user.login_method}
+    token = {'rsa': base64.b64encode(user.challenge_signature).decode(), 'token': user.token}[user.login_method]
+    headers = {'auth': token, 'auth-type': user.login_method}
     payload = {'path': server_path}
     res = requests.get(f'{server_addr}/download/{user.name}', json=payload, headers=headers)
     if res.headers['result'] != 'OK':
@@ -94,54 +103,54 @@ def download_file(server_addr: str, server_path: str, local_path: str, user: Use
 
 # creates a directory on the anchorbox
 def make_dir(server_addr: str, dir_name: str, user: User) -> None:
-    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
-    headers = {'auth': token.decode(), 'auth-type': user.login_method}
+    token = {'rsa': base64.b64encode(user.challenge_signature).decode(), 'token': user.token}[user.login_method]
+    headers = {'auth': token, 'auth-type': user.login_method}
     payload = {'path': dir_name}
     json_request('post', f'{server_addr}/mkdir/{user.name}', data=payload, headers=headers)
 
 # deletes a specified direcotory or file on the anchorbox
 def delete_file(server_addr: str, dir_name: str, user: User) -> None:
-    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
-    headers = {'auth': token.decode(), 'auth-type': user.login_method}
+    token = {'rsa': base64.b64encode(user.challenge_signature).decode(), 'token': user.token}[user.login_method]
+    headers = {'auth': token, 'auth-type': user.login_method}
     payload = {'path': dir_name}
     json_request('post', f'{server_addr}/rm/{user.name}', data=payload, headers=headers)
 
 # returns specified system health information
 def get_sys_health(server_addr: str, info_type: str, user: User) -> dict:
     # ensure the information type is valid
-    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
-    headers = {'username': user.name,'auth': token.decode(), 'auth-type': user.login_method}
+    token = {'rsa': base64.b64encode(user.challenge_signature).decode(), 'token': user.token}[user.login_method]
+    headers = {'username': user.name,'auth': token, 'auth-type': user.login_method}
     return json_request('get', f'{server_addr}/health/{info_type}', headers=headers)
 
 # creates a password in the password database
 def create_password(server_addr: str, pw_name: str, password: str, user: User) -> dict:
-    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
-    headers = {'auth': token.decode(), 'auth-type': user.login_method}
+    token = {'rsa': base64.b64encode(user.challenge_signature).decode(), 'token': user.token}[user.login_method]
+    headers = {'auth': token, 'auth-type': user.login_method}
     payload = {'pw_name': pw_name, 'password': password, 'username': user.name}
     return json_request('post', f'{server_addr}/new_pw/{user.name}', data=payload, headers=headers)
 
 # recieves a password from the password database
 def get_password(server_addr: str, pw_name: str, user: User) -> dict:
-    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
-    headers = {'pw-name': pw_name, 'auth': token.decode(), 'auth-type': user.login_method}
+    token = {'rsa': base64.b64encode(user.challenge_signature).decode(), 'token': user.token}[user.login_method]
+    headers = {'pw-name': pw_name, 'auth': token, 'auth-type': user.login_method}
     return json_request('get', f'{server_addr}/get_pw/{user.name}', headers=headers)
 
 # deletes a specified password from the password database
 def delete_password(server_addr: str, pw_name: str, user: User):
-    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
-    headers = {'pw-name': pw_name,'auth': token.decode(), 'auth-type': user.login_method}
+    token = {'rsa': base64.b64encode(user.challenge_signature).decode(), 'token': user.token}[user.login_method]
+    headers = {'pw-name': pw_name,'auth': token, 'auth-type': user.login_method}
     return json_request('post', f'{server_addr}/del_pw/{user.name}', headers=headers)
 
 # returns a list of all passwords in the user's database
 def list_passwords(server_addr: str, user: User) -> list:
-    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
-    headers = {'auth': token.decode(), 'auth-type': user.login_method}
+    token = {'rsa': base64.b64encode(user.challenge_signature).decode(), 'token': user.token}[user.login_method]
+    headers = {'auth': token, 'auth-type': user.login_method}
     result = json_request('get', f'{server_addr}/list_pw/{user.name}', headers=headers)
     return json.loads(result['message'])
 
 # ends the server session
 def kill_server(server_addr: str, user: User) -> str:
-    token = {'rsa': base64.b64encode(user.challenge_signature), 'token': user.token}[user.login_method]
-    headers = {'username': user.name, 'auth': token.decode(), 'auth-type': user.login_method}
+    token = {'rsa': base64.b64encode(user.challenge_signature).decode(), 'token': user.token}[user.login_method]
+    headers = {'username': user.name, 'auth': token, 'auth-type': user.login_method}
     result = json_request('post', f'{server_addr}/kill', headers=headers)
     return result['message']
