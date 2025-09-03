@@ -7,8 +7,8 @@ from getpass import getpass
 from requests import RequestException
 
 import utils.api as api
-from utils.user import User
-from utils.helpers import str_dict, get_new_password, decrypt_password
+from utils.user import User, AuthorizationError
+from utils.helpers import *
 
 # size to indicate a directory in LS entries
 DIR_SIZE = -1
@@ -150,6 +150,23 @@ def parse_command(command: str, user: User, server_addr: str) -> str:
                         return ''
                     case _:
                         print('Please enter "Y" or "N"')
+        case 'user':
+            if len(args) < 1:
+                return 'Error: This command accepts at least one argument'
+            match args[0]:
+                case 'new':
+                    username = input('Username: ')
+                    password = getpass('Password: ')
+                    confirm = getpass('Confirm Password: ')
+                    if password != confirm:
+                        return 'Error: Password does not match confirmation'
+                    home_path = input('Home Path: ')
+                    pub_key = get_pub_key()
+                    return api.create_user(server_addr, username, password, home_path, pub_key, user)
+                case 'delete':
+                    pass
+                case _:
+                    print(f'Unrecognized command: "{args[0]}"')
 
         case 'exit':
             api.logout(server_addr, user)
@@ -181,7 +198,7 @@ def main():
             output = parse_command(command, user, server_addr)
             if output:
                 print(output)
-        except RequestException as e:
+        except (RequestException, AuthorizationError) as e:
             print(f'Error: {e}')
                
 if __name__ == '__main__':

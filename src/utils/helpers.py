@@ -64,3 +64,16 @@ def decrypt_password(key: str, password: str, prv_key: RSAKeyPair) -> str:
     aes_key = prv_key.decrypt(base64.b64decode(key))
     pass_cipher = base64.b64decode(password)
     return AESCipher(aes_key).decrypt_authenticated(pass_cipher).decode()
+
+# reads a public key from a given path
+def get_pub_key() -> str:
+    while True:
+        path = input('Public Key Path: ')
+        if not os.path.exists(path):
+            print('Public key file could not be read. Does it exist?')
+            continue
+        try:
+            key = RSAKeyPair(path)
+            return key.export_private_pem().decode()
+        except ValueError:
+            print('Invalid public key file.')
