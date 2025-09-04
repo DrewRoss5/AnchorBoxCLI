@@ -7,6 +7,18 @@ from getpass import getpass
 from crypto.aes import AESCipher
 from crypto.rsa import RSAKeyPair
 
+# repeatedly asks the user a particular prompt until 'y' or 'n' is chosen. Returns true if y is chosen, or false for n
+def ask_yes_no(prompt: str):
+    while True:
+        response = input(f'{prompt} (Y/N): ')
+        match response.lower():
+            case 'y':
+                return True
+            case 'n':
+                return False
+            case _:
+                print('Sorry, please enter Y or N')
+
 # returns a stringified version of a dictionary, accounting for the possiblity of nested dictionaries
 def str_dict(data: dict, depth: int = 0) -> str:
     left_space = max(map(len, data.keys())) + 5

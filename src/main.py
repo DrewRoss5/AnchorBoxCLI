@@ -141,15 +141,11 @@ def parse_command(command: str, user: User, server_addr: str) -> str:
                     return f'Error: Unrecognized password database operation "{operation}"'
         
         case 'kill':
-            while True:
-                confirm = input('This will kill the server. Are you sure? (Y/N) ').lower()
-                match confirm:
-                    case 'y':
-                        return api.kill_server(server_addr, user)
-                    case 'n': 
-                        return ''
-                    case _:
-                        print('Please enter "Y" or "N"')
+            confirm = ask_yes_no('Are you sure? This will end the current server session')
+            if confirm:
+                return api.kill_server(server_addr, user)
+            return ''
+        
         case 'user':
             if len(args) < 1:
                 return 'Error: This command accepts at least one argument'
@@ -164,9 +160,13 @@ def parse_command(command: str, user: User, server_addr: str) -> str:
                     pub_key = get_pub_key()
                     return api.create_user(server_addr, username, password, home_path, pub_key, user)
                 case 'delete':
-                    pass
+                    if len(args) < 2:
+                        return 'Error: This command accepts at least two arguments'
+                    for username in args[1:]:
+                        api.delete_user(server_addr, username, user)
+                    return f'User{"s" if len(args) > 2 else ""} deleted sucessfully'
                 case _:
-                    print(f'Unrecognized command: "{args[0]}"')
+                  return f'Unrecognized command: "user {args[0]}"'
 
         case 'exit':
             api.logout(server_addr, user)
@@ -177,6 +177,24 @@ def parse_command(command: str, user: User, server_addr: str) -> str:
             os.system('cls')
             return ''
         
+        case 'su':
+            if len(args) != 2:
+                return 'Error: This command accepts exactly two arguments'
+            username, key_path = args
+            confirm = ask_yes_no('Log out current user?')
+            if not confirm:
+                return ''
+            if user.login_method:
+                api.logout(server_addr, user)
+            # update the user object
+            user.name = username
+            user.key_path = key_path
+            update_config = ask_yes_no('Update config file?')
+            if update_config:
+                user.save_config(server_addr)
+            os.system('cls')
+            return f'User set to {user.name}. Login again to use server functions'
+
         case _:
             return f'Error: Unrecognized Command "{command}"'
 
@@ -186,14 +204,14 @@ def main():
         username = input('Username: ')
         prv_key_path = input('Private Key Path: ')
         server_addr = input('AnchorBox Address: ')
-        with open('config.json', 'w') as f:
-            json.dump(server_addr, f)
+        user = User(username, prv_key_path)
+        user.save_config(server_addr)
     else:
         with open('config.json') as f:
             username, prv_key_path, server_addr = json.load(f).values()
-    user = User(username, prv_key_path)
-    while True:
-        command = input(f'{username} > ')
+        user = User(username, prv_key_path)
+    while True:   
+        command = input(f'{user.name} > ')
         try:
             output = parse_command(command, user, server_addr)
             if output:

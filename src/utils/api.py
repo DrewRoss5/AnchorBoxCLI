@@ -152,5 +152,5 @@ def create_user(server_addr: str, new_username: str, new_pass: str, new_path: st
 # deletes a user
 def delete_user(server_addr: str, target: str, user: User):
     headers = {'username': user.name, 'auth': user.get_token(), 'auth-type': user.login_method}
-    result = json_request('post', f'{server_addr}/{target}', headers=headers)
+    result = json_request('post', f'{server_addr}/delete_user/{target}', headers=headers)
     return result['message']
